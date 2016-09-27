@@ -315,6 +315,24 @@ namespace Amazon.S3.IO
         /// <returns>S3FileInfo of the newly copied file.</returns>
         public S3FileInfo CopyTo(string newBucket, string newKey, bool overwrite)
         {
+            return CopyTo(newBucket, newKey, overwrite, ServerSideEncryptionMethod.None);
+        }
+
+        /// <summary>
+        /// Copies this file's content to the file indicated by the S3 bucket and object key.
+        /// If the file already exists in S3 and overwrite is set to false than an ArgumentException is thrown.
+        /// </summary>
+        /// <param name="newBucket">S3 bucket to copy the file to.</param>
+        /// <param name="newKey">S3 object key to copy the file to.</param>
+        /// <param name="overwrite">Determines whether the file can be overwritten.</param>
+        /// <param name="encryption">Determines whether the file should use server side encryption.</param>
+        /// <exception cref="T:System.IO.IOException">If the file already exists in S3 and overwrite is set to false.</exception>
+        /// <exception cref="T:System.ArgumentException"></exception>
+        /// <exception cref="T:System.Net.WebException"></exception>
+        /// <exception cref="T:Amazon.S3.AmazonS3Exception"></exception>
+        /// <returns>S3FileInfo of the newly copied file.</returns>
+        public S3FileInfo CopyTo(string newBucket, string newKey, bool overwrite, ServerSideEncryptionMethod encryption)
+        {
             if (String.IsNullOrEmpty(newBucket))
             {
                 throw new ArgumentException("A bucket is required to copy an object","newBucket");
@@ -323,11 +341,11 @@ namespace Amazon.S3.IO
             S3FileInfo ret = null;
             if (String.IsNullOrEmpty(newKey) || newKey.EndsWith("\\", StringComparison.Ordinal))
             {
-                ret = CopyTo(new S3DirectoryInfo(s3Client, newBucket, newKey), overwrite);
+                ret = CopyTo(new S3DirectoryInfo(s3Client, newBucket, newKey), overwrite, encryption);
             }
             else
             {
-                ret = CopyTo(new S3FileInfo(s3Client, newBucket, newKey), overwrite);
+                ret = CopyTo(new S3FileInfo(s3Client, newBucket, newKey), overwrite, encryption);
             }
             return ret;
         }
@@ -359,6 +377,24 @@ namespace Amazon.S3.IO
         /// <exception cref="T:Amazon.S3.AmazonS3Exception"></exception>
         /// <returns>S3FileInfo of the newly copied file.</returns>
         public S3FileInfo CopyTo(S3DirectoryInfo dir, bool overwrite)
+        {
+            return CopyTo(dir, overwrite, ServerSideEncryptionMethod.None);
+        }
+
+
+        /// <summary>
+        /// Copies this file to the target directory.
+        /// If the file already exists in S3 and overwrite is set to false than an ArgumentException is thrown.
+        /// </summary>
+        /// <param name="dir">Target directory where to copy the file to.</param>
+        /// <param name="overwrite">Determines whether the file can be overwritten.</param>
+        /// <param name="encryption">Determines whether the file should use server side encryption.</param>
+        /// <exception cref="T:System.ArgumentException">If the directory does not exist.</exception>
+        /// <exception cref="T:System.IO.IOException">If the file already exists in S3 and overwrite is set to false.</exception>
+        /// <exception cref="T:System.Net.WebException"></exception>
+        /// <exception cref="T:Amazon.S3.AmazonS3Exception"></exception>
+        /// <returns>S3FileInfo of the newly copied file.</returns>
+        public S3FileInfo CopyTo(S3DirectoryInfo dir, bool overwrite, ServerSideEncryptionMethod encryption)
         {
             if (!dir.Exists)
             {
@@ -395,6 +431,22 @@ namespace Amazon.S3.IO
         /// <returns>S3FileInfo of the newly copied file.</returns>
         public S3FileInfo CopyTo(S3FileInfo file, bool overwrite)
         {
+            return CopyTo(file, false, ServerSideEncryptionMethod.None);
+        }
+
+        /// <summary>
+        /// Copies this file to the location indicated by the passed in S3FileInfo.
+        /// If the file already exists in S3 and overwrite is set to false than an ArgumentException is thrown.
+        /// </summary>
+        /// <param name="file">The target location to copy this file to.</param>
+        /// <param name="overwrite">Determines whether the file can be overwritten.</param>
+        /// <param name="encryption">Determines whether the file should use server side encryption.</param>
+        /// <exception cref="T:System.IO.IOException">If the file already exists in S3 and overwrite is set to false.</exception>
+        /// <exception cref="T:System.Net.WebException"></exception>
+        /// <exception cref="T:Amazon.S3.AmazonS3Exception"></exception>
+        /// <returns>S3FileInfo of the newly copied file.</returns>
+        public S3FileInfo CopyTo(S3FileInfo file, bool overwrite, ServerSideEncryptionMethod encryption)
+        {
             if (!overwrite)
             {
                 if (file.Exists)
@@ -410,7 +462,8 @@ namespace Amazon.S3.IO
                     DestinationBucket = file.BucketName,
                     DestinationKey = S3Helper.EncodeKey(file.ObjectKey),
                     SourceBucket = bucket,
-                    SourceKey = S3Helper.EncodeKey(key)
+                    SourceKey = S3Helper.EncodeKey(key),
+                    ServerSideEncryptionMethod = encryption
                 };
                 ((Amazon.Runtime.Internal.IAmazonWebServiceRequest)request).AddBeforeRequestHandler(S3Helper.FileIORequestEventHandler);
                 s3Client.CopyObject(request);
@@ -430,7 +483,8 @@ namespace Amazon.S3.IO
                     {
                         BucketName = file.BucketName,
                         Key = S3Helper.EncodeKey(file.ObjectKey),
-                        InputStream = stream
+                        InputStream = stream,
+                        ServerSideEncryptionMethod = encryption
                     };
                     ((Amazon.Runtime.Internal.IAmazonWebServiceRequest)putObjectRequest).AddBeforeRequestHandler(S3Helper.FileIORequestEventHandler);
                     file.S3Client.PutObject(putObjectRequest);
@@ -514,6 +568,22 @@ namespace Amazon.S3.IO
         /// <returns>S3FileInfo where the file is copied to.</returns>
         public S3FileInfo CopyFromLocal(string srcFileName, bool overwrite)
         {
+            return CopyFromLocal(srcFileName, overwrite, ServerSideEncryptionMethod.None);
+        }
+
+        /// <summary>
+        /// Copies the file from the local file system to S3.
+        /// If the file already exists in S3 and overwrite is set to false than an ArgumentException is thrown.
+        /// </summary>
+        /// <param name="srcFileName">Location of the file on the local file system to copy.</param>
+        /// <param name="overwrite">Determines whether the file can be overwritten.</param>
+        /// <param name="encryption">Determines whether the file should use server side encryption.</param>
+        /// <exception cref="T:System.IO.IOException">If the file already exists in S3 and overwrite is set to false.</exception>
+        /// <exception cref="T:System.Net.WebException"></exception>
+        /// <exception cref="T:Amazon.S3.AmazonS3Exception"></exception>
+        /// <returns>S3FileInfo where the file is copied to.</returns>
+        public S3FileInfo CopyFromLocal(string srcFileName, bool overwrite, ServerSideEncryptionMethod encryption)
+        {
             if (!overwrite)
             {
                 if (Exists)
@@ -526,7 +596,8 @@ namespace Amazon.S3.IO
             {
                 BucketName = bucket,
                 Key = S3Helper.EncodeKey(key),
-                FilePath = srcFileName
+                FilePath = srcFileName,
+                ServerSideEncryptionMethod = encryption
             };
             ((Amazon.Runtime.Internal.IAmazonWebServiceRequest)putObjectRequest).AddBeforeRequestHandler(S3Helper.FileIORequestEventHandler);
             s3Client.PutObject(putObjectRequest);
