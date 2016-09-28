@@ -666,12 +666,46 @@ namespace Amazon.S3.IO
         /// <returns>S3FileInfo for the target location.</returns>
         public S3FileInfo MoveTo(string bucket, string key)
         {
-            S3FileInfo ret = CopyTo(bucket,key,false);
+            S3FileInfo ret = CopyTo(bucket, key, false);
             Delete();
             return ret;
         }
 
+        /// <summary>
+        /// Moves the file to a a new location in S3.
+        /// </summary>
+        /// <param name="bucket">Bucket to move the file to.</param>
+        /// <param name="key">Object key to move the file to.</param>
+        /// <param name="encryption">Determines whether the file should use server side encryption.</param>
+        /// <exception cref="T:System.IO.IOException">If the file already exists in S3.</exception>
+        /// <exception cref="T:System.ArgumentException"></exception>
+        /// <exception cref="T:System.Net.WebException"></exception>
+        /// <exception cref="T:Amazon.S3.AmazonS3Exception"></exception>
+        /// <returns>S3FileInfo for the target location.</returns>
+        public S3FileInfo MoveTo(string bucket, string key, ServerSideEncryptionMethod encryption)
+        {
+            S3FileInfo ret = CopyTo(bucket, key, false, encryption);
+            Delete();
+            return ret;
+        }
 
+        /// <summary>
+        /// Moves the file to a a new location in S3.
+        /// </summary>
+        /// <param name="path">The target directory to copy to.</param>
+        /// <param name="encryption">Determines whether the file should use server side encryption.</param>
+        /// <exception cref="T:System.IO.IOException">If the file already exists in S3.</exception>
+        /// <exception cref="T:System.ArgumentException"></exception>
+        /// <exception cref="T:System.Net.WebException"></exception>
+        /// <exception cref="T:Amazon.S3.AmazonS3Exception"></exception>
+        /// <returns>S3FileInfo for the target location.</returns>
+        public S3FileInfo MoveTo(S3DirectoryInfo path, ServerSideEncryptionMethod encryption)
+        {
+            S3FileInfo ret = CopyTo(path, false, encryption);
+            Delete();
+            return ret;
+        }
+       
         /// <summary>
         /// Moves the file to a a new location in S3.
         /// </summary>
@@ -700,6 +734,23 @@ namespace Amazon.S3.IO
         public S3FileInfo MoveTo(S3FileInfo file)
         {
             S3FileInfo ret = CopyTo(file, false);
+            Delete();
+            return ret;
+        }
+
+        /// <summary>
+        /// Moves the file to a a new location in S3.
+        /// </summary>
+        /// <param name="file">The target file to copy to.</param>
+        /// <param name="encryption">Determines whether the file should use server side encryption.</param>
+        /// <exception cref="T:System.IO.IOException">If the file already exists in S3.</exception>
+        /// <exception cref="T:System.ArgumentException"></exception>
+        /// <exception cref="T:System.Net.WebException"></exception>
+        /// <exception cref="T:Amazon.S3.AmazonS3Exception"></exception>
+        /// <returns>S3FileInfo for the target location.</returns>
+        public S3FileInfo MoveTo(S3FileInfo file, ServerSideEncryptionMethod encryption)
+        {
+            S3FileInfo ret = CopyTo(file, false, encryption);
             Delete();
             return ret;
         }
@@ -751,6 +802,25 @@ namespace Amazon.S3.IO
         public S3FileInfo MoveFromLocal(string path, bool overwrite)
         {
             S3FileInfo ret = CopyFromLocal(path, overwrite);
+            File.Delete(path);
+            return ret;
+        }
+
+        /// <summary>
+        /// Moves the file from the local file system to S3 in this directory.
+        /// If the file already exists in S3 and overwrite is set to false than an ArgumentException is thrown.
+        /// </summary>
+        /// <param name="path">The local file system path where the files are to be moved.</param>
+        /// <param name="overwrite">Determines whether the file can be overwritten.</param>
+        /// <param name="encryption">Determines whether the file should use server side encryption.</param>
+        /// <exception cref="T:System.IO.IOException">If the file already exists in S3 and overwrite is set to false.</exception>
+        /// <exception cref="T:System.ArgumentException"></exception>
+        /// <exception cref="T:System.Net.WebException"></exception>
+        /// <exception cref="T:Amazon.S3.AmazonS3Exception"></exception>
+        /// <returns>S3FileInfo where the file is moved to.</returns>
+        public S3FileInfo MoveFromLocal(string path, bool overwrite, ServerSideEncryptionMethod encryption)
+        {
+            S3FileInfo ret = CopyFromLocal(path, overwrite, encryption);
             File.Delete(path);
             return ret;
         }
@@ -809,6 +879,24 @@ namespace Amazon.S3.IO
         /// <returns>S3FileInfo of the destination file.</returns>
         public S3FileInfo Replace(string destinationBucket, string destinationKey, string backupBucket, string backupKey)
         {
+            return Replace(destinationBucket, destinationKey, backupBucket, backupKey, ServerSideEncryptionMethod.None);
+        }
+
+        /// <summary>
+        /// Replaces the destination file with the content of this file and then deletes the orignial file.  If a backup location is specifed then the content of destination file is 
+        /// backup to it.
+        /// </summary>
+        /// <param name="destinationBucket">Destination bucket of this file will be copy to.</param>
+        /// <param name="destinationKey">Destination object key of this file will be copy to.</param>
+        /// <param name="backupBucket">Backup bucket to store the contents of the destination file.</param>
+        /// <param name="backupKey">Backup object key to store the contents of the destination file.</param>
+        /// <exception cref="T:System.ArgumentException"></exception>
+        /// <exception cref="T:System.IO.IOException"></exception>
+        /// <exception cref="T:System.Net.WebException"></exception>
+        /// <exception cref="T:Amazon.S3.AmazonS3Exception"></exception>
+        /// <returns>S3FileInfo of the destination file.</returns>
+        public S3FileInfo Replace(string destinationBucket, string destinationKey, string backupBucket, string backupKey, ServerSideEncryptionMethod encryption)
+        {
             if (String.IsNullOrEmpty(destinationBucket))
             {
                 throw new ArgumentException("A bucket is required to replace an object", "destinationBucket");
@@ -846,7 +934,7 @@ namespace Amazon.S3.IO
                 }        
             }
 
-            S3FileInfo ret = Replace(destinationInfo, backupInfo);
+            S3FileInfo ret = Replace(destinationInfo, backupInfo, encryption);
             return ret;
         }
 
@@ -882,6 +970,22 @@ namespace Amazon.S3.IO
         /// <returns>S3FileInfo of the destination file.</returns>
         public S3FileInfo Replace(S3FileInfo destFile, S3FileInfo backupFile)
         {
+            return Replace(destFile, backupFile, ServerSideEncryptionMethod.None);
+        }
+
+        /// <summary>
+        /// Replaces the destination file with the content of this file and then deletes the orignial file.  If a backupFile is specifed then the content of destination file is 
+        /// backup to it.
+        /// </summary>
+        /// <param name="destFile">Where the contents of this file will be copy to.</param>
+        /// <param name="backupFile">If specified the destFile is backup to it.</param>
+        /// <exception cref="T:System.ArgumentException"></exception>
+        /// <exception cref="T:System.IO.IOException"></exception>
+        /// <exception cref="T:System.Net.WebException"></exception>
+        /// <exception cref="T:Amazon.S3.AmazonS3Exception"></exception>
+        /// <returns>S3FileInfo of the destination file.</returns>
+        public S3FileInfo Replace(S3FileInfo destFile, S3FileInfo backupFile, ServerSideEncryptionMethod encryption)
+        {
             if (string.Equals(this.BucketName, destFile.BucketName) && string.Equals(this.ObjectKey, destFile.ObjectKey))
             {
                 throw new ArgumentException("Destination file can not be the same as the source file when doing a replace.", "destFile");
@@ -890,7 +994,7 @@ namespace Amazon.S3.IO
             {
                 destFile.CopyTo(backupFile, true);
             }
-            S3FileInfo ret = CopyTo(destFile, true);
+            S3FileInfo ret = CopyTo(destFile, true, encryption);
             Delete();
             return ret;
         }
