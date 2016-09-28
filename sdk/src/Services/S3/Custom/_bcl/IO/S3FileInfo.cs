@@ -591,7 +591,7 @@ namespace Amazon.S3.IO
                     throw new IOException("File already exists");
                 }
             }
-
+            
             var putObjectRequest = new PutObjectRequest
             {
                 BucketName = bucket,
@@ -865,6 +865,22 @@ namespace Amazon.S3.IO
         }
 
         /// <summary>
+        /// Returns a Stream for writing to S3.  If the file already exists it will be overwritten.
+        /// </summary>
+        /// <param name="encryption">Determines whether the file should use server side encryption.</param>
+        /// <remarks>
+        /// <note>The content will not be written to S3 until the Stream is closed.</note>
+        /// </remarks>
+        /// <exception cref="T:System.IO.IOException">The file is already open.</exception>
+        /// <exception cref="T:System.Net.WebException"></exception>
+        /// <exception cref="T:Amazon.S3.AmazonS3Exception"></exception>
+        /// <returns>Stream to write from.</returns>
+        public Stream OpenWrite(ServerSideEncryptionMethod encryption)
+        {
+            return new S3FileStream(this.S3Client, this.BucketName, this.ObjectKey, FileMode.OpenOrCreate, FileAccess.Write, encryption);
+        }
+
+        /// <summary>
         /// Replaces the destination file with the content of this file and then deletes the orignial file.  If a backup location is specifed then the content of destination file is 
         /// backup to it.
         /// </summary>
@@ -890,6 +906,7 @@ namespace Amazon.S3.IO
         /// <param name="destinationKey">Destination object key of this file will be copy to.</param>
         /// <param name="backupBucket">Backup bucket to store the contents of the destination file.</param>
         /// <param name="backupKey">Backup object key to store the contents of the destination file.</param>
+        /// <param name="encryption">Determines whether the file should use server side encryption.</param>
         /// <exception cref="T:System.ArgumentException"></exception>
         /// <exception cref="T:System.IO.IOException"></exception>
         /// <exception cref="T:System.Net.WebException"></exception>
@@ -979,6 +996,7 @@ namespace Amazon.S3.IO
         /// </summary>
         /// <param name="destFile">Where the contents of this file will be copy to.</param>
         /// <param name="backupFile">If specified the destFile is backup to it.</param>
+        /// <param name="encryption">Determines whether the file should use server side encryption.</param>
         /// <exception cref="T:System.ArgumentException"></exception>
         /// <exception cref="T:System.IO.IOException"></exception>
         /// <exception cref="T:System.Net.WebException"></exception>

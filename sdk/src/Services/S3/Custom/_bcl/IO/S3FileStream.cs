@@ -48,6 +48,7 @@ namespace Amazon.S3.IO
         private bool canWrite = true;
         private long startPosition = 0;
         private bool disposed = false;
+        private ServerSideEncryptionMethod encryptionMethod = ServerSideEncryptionMethod.None;
 
         private bool bucketExist;
         private bool fileExist;
@@ -55,14 +56,22 @@ namespace Amazon.S3.IO
         private long lastFlushMarker = -1;
 
         internal S3FileStream(IAmazonS3 s3Client, string bucket, string key, FileMode mode)
-            : this(s3Client, bucket, key, mode, FileAccess.ReadWrite, MIN_SIZE)
+            : this(s3Client, bucket, key, mode, FileAccess.ReadWrite, MIN_SIZE, ServerSideEncryptionMethod.None)
         { }
 
         internal S3FileStream(IAmazonS3 s3Client, string bucket, string key, FileMode mode, FileAccess access)
-            : this(s3Client, bucket, key, mode, access, 0)
+            : this(s3Client, bucket, key, mode, access, 0, ServerSideEncryptionMethod.None)
         { }
 
         internal S3FileStream(IAmazonS3 s3Client, string bucket, string key, FileMode mode, FileAccess access, int buffersize)
+            : this(s3Client, bucket, key, mode, access, buffersize, ServerSideEncryptionMethod.None)
+        { }
+
+        internal S3FileStream(IAmazonS3 s3Client, string bucket, string key, FileMode mode, FileAccess access, ServerSideEncryptionMethod encryption)
+            : this(s3Client, bucket, key, mode, access, 0, encryption)
+        { }
+
+        internal S3FileStream(IAmazonS3 s3Client, string bucket, string key, FileMode mode, FileAccess access, int buffersize, ServerSideEncryptionMethod encryption)
         {
             file = new S3FileInfo(s3Client, bucket, key);
             buffer = new MemoryStream(buffersize);
@@ -77,6 +86,8 @@ namespace Amazon.S3.IO
             {
                 canWrite = false;
             }
+
+            encryptionMethod = encryption;
 
             switch (mode)
             {
@@ -171,6 +182,14 @@ namespace Amazon.S3.IO
             get
             {
                 return canWrite;
+            }
+        }
+
+        public ServerSideEncryptionMethod EncryptionMethod
+        {
+            get
+            {
+                return encryptionMethod;
             }
         }
 
@@ -299,9 +318,10 @@ namespace Amazon.S3.IO
                     var request = new PutObjectRequest
                     {
                         BucketName = file.BucketName,
-                        Key=S3Helper.EncodeKey(file.ObjectKey),
+                        Key = S3Helper.EncodeKey(file.ObjectKey),
                         InputStream = buffer,
-                        AutoCloseStream = false
+                        AutoCloseStream = false,
+                        ServerSideEncryptionMethod = encryptionMethod
                     };
                     ((Amazon.Runtime.Internal.IAmazonWebServiceRequest)request).AddBeforeRequestHandler(S3Helper.FileIORequestEventHandler);
 
